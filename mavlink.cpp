@@ -66,6 +66,7 @@
 #define NUMBER_OF_FIELDS (sizeof(Vehicle_field_names)/sizeof(*Vehicle_field_names))
 #define B(x) S_to_binary_(#x)
 
+#define UINT16_MAX (65535U)
 
 // convert to binary
 static inline unsigned long long S_to_binary_(const char *s)

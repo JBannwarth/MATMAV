@@ -21,7 +21,7 @@ if ismac
 end
 % compile mex files
 if ispc
-    mex -O pnet.c ws2_32.lib -DWIN32
+    mex -O pnet.c C:\Matlab\R2015b\Pro\sys\lcc64\lcc64\lib64\ws2_32.lib -DWIN32
 end
 
 if ismac
