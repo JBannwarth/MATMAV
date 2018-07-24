@@ -402,6 +402,7 @@ classdef MatMav < handle
         thrust_flag=5;
         attitude_target_flag=6;
         angular_rates_flag=7;
+        attitude_target_full_flag = 8;
     end
 %% public methods, functions
     methods
@@ -718,8 +719,8 @@ classdef MatMav < handle
             if ~isnumeric(value)
                 error('Value must be numeric. Available Masks, 2(position) or 3(velocity)');
             end
-            if value <2 || value >7
-                error('Available Masks, 2(position), 3(velocity), 5(acceleration), 5(thrust), 6(attitude target), 7(body rates).');
+            if value <2 || value >8
+                error('Available Masks, 2(position), 3(velocity), 5(acceleration), 5(thrust), 6(attitude target), 7(body rates), 8(attitude, yaw rate and thrust).');
             end
          obj.setPointMask=value;
         end
@@ -789,6 +790,24 @@ classdef MatMav < handle
             obj.quaternion_sp(agent,2)=q1;
             obj.quaternion_sp(agent,3)=q2;
             obj.quaternion_sp(agent,4)=q3;
+        end
+        
+        % set quaternion, yaw rate and thrust
+        function set_attitude_full_sp(obj,agent,q0,q1,q2,q3,yaw_rate,thrust)
+            if agent > obj.number_of_target_systems
+                error('agent should be within the defined number of systems.');
+            end
+            obj.quaternion_sp(agent,1)=q0;
+            obj.quaternion_sp(agent,2)=q1;
+            obj.quaternion_sp(agent,3)=q2;
+            obj.quaternion_sp(agent,4)=q3;
+            obj.angular_rates_sp(agent).roll_rate = 0;
+            obj.angular_rates_sp(agent).pitch_rate = 0;
+            obj.angular_rates_sp(agent).yaw_rate = yaw_rate;
+            if thrust < 0 || thrust > 1
+                error('thrust value should be within [0,1]');
+            end
+            obj.thrust_setpoint(agent) = thrust;
         end
         
         % set function of setMocap
@@ -2511,6 +2530,16 @@ methods (Access = private)
                                                                     obj.quaternion_sp(agent,4));
                     obj.holdBuff(agent, obj.att_targetInd)=Buff;
                     obj.Msgflag(agent, obj.att_target_i)=1;
+                % is it full attitude set point message (except body roll/pitch rate)
+                elseif obj.setPointMask == obj.attitude_target_full_flag
+                    [Buff,~]=mavlink('setAttitudeTargetFull',agent,0,obj.quaternion_sp(agent,1),...
+                                                                    obj.quaternion_sp(agent,2),...
+                                                                    obj.quaternion_sp(agent,3),...
+                                                                    obj.quaternion_sp(agent,4),...
+                                                                    obj.angular_rates_sp(agent).yaw_rate,...
+                                                                    obj.thrust_setpoint(agent));
+                    obj.holdBuff(agent, obj.att_targetInd)=Buff;
+                    obj.Msgflag(agent, obj.att_target_i)=1;    
                 end
             end
             % for actuators setpoints (to be removed)
@@ -3044,6 +3073,15 @@ methods (Access = private)
 %                                       cmdHandle.Data.cmpID,...
 %                                       cmdHandle.Data.pname,...
 %                                       cmdHandle.pvalue);
+                  case 16
+                      if cmdHandle.Data(1)<=obj.number_of_target_systems
+                          obj.set_attitude_full_sp(cmdHandle.Data(1),...
+                              cmdHandle.Data(2),...
+                              cmdHandle.Data(3),...
+                              cmdHandle.Data(4),...
+                              cmdHandle.Data(5),...
+                              cmdHandle.Data(6));
+                      end
               end
               
           end

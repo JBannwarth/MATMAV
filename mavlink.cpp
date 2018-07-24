@@ -1185,6 +1185,37 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
             }
         }// end of set_attitude_target (thrust)
         
+        // set_attitude_target_full (quaternion, yaw rate, thrust)
+        else if(strcmp(commandName,"setAttitudeTargetFull")== 0){
+            if(nrhs!=9){
+                printf("Invalid setAttitudeTarget_q command syntax\n");
+            }
+            else{
+                mavlink_message_t tx_msg;
+                mavlink_set_attitude_target_t setatt;
+                
+                setatt.target_system=(uint8_t)mxGetScalar(prhs[1]);
+                setatt.target_component=(uint8_t)mxGetScalar(prhs[2]);
+                
+                setatt.q[0]=(float)mxGetScalar(prhs[3]);
+                setatt.q[1]=(float)mxGetScalar(prhs[4]);
+                setatt.q[2]=(float)mxGetScalar(prhs[5]);
+                setatt.q[3]=(float)mxGetScalar(prhs[6]);
+                setatt.body_yaw_rate=(float)mxGetScalar(prhs[7]);
+                setatt.thrust=(float)mxGetScalar(prhs[8]);
+                
+                setatt.type_mask=(1 << 1) | (1 << 0);
+                
+                time_t ltime;
+                setatt.time_boot_ms = (uint32_t)(time(&ltime)/1000);
+                
+                mavlink_msg_set_attitude_target_encode(GCS.ID, GCS.Component_ID, &tx_msg, &setatt);
+                buf_len = mavlink_msg_to_send_buffer(OutputBuffer, &tx_msg);
+                
+				ReturnBuffer(OutputBuffer,buf_len,plhs);
+            }
+        }// end of set_attitude_target_full
+        
         // set_channel_override
         else if(strcmp(commandName,"setChannelOverride")== 0){
             if(nrhs!=11){
